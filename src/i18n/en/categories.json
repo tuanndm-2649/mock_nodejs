@@ -1,0 +1,6 @@
+{
+  "error": {
+    "nameExists": "Category name already exists",
+    "notFound": "Category not found"
+  }
+}
