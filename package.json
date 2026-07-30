@@ -27,7 +27,8 @@
     "migration:create": "typeorm-ts-node-commonjs migration:create",
     "migration:run": "yarn typeorm migration:run",
     "migration:revert": "yarn typeorm migration:revert",
-    "migration:run:test": "dotenv -e .env.test.local -- yarn typeorm migration:run"
+    "migration:run:test": "dotenv -e .env.test.local -- yarn typeorm migration:run",
+    "seed": "ts-node src/database/seeds/index.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -36,6 +37,7 @@
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/mapped-types": "*",
     "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/serve-static": "^5.0.5",
     "@nestjs/swagger": "^11.4.5",
     "@nestjs/typeorm": "^11.0.3",
     "bcrypt": "^6.0.0",
@@ -59,6 +61,7 @@
     "@types/bcrypt": "^6.0.0",
     "@types/express": "^5.0.0",
     "@types/jest": "^30.0.0",
+    "@types/multer": "^2.2.0",
     "@types/node": "^24.0.0",
     "@types/pg": "^8.20.0",
     "@types/supertest": "^7.0.0",

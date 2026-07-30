@@ -3,6 +3,9 @@
 /node_modules
 /build
 
+# uploaded files
+/uploads
+
 # Package manager
 # This project uses yarn — ignore npm's lockfile to avoid mixing package managers
 package-lock.json
