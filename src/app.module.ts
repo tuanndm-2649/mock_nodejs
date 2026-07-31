@@ -21,6 +21,9 @@ import { APP_FILTER, APP_INTERCEPTOR, Reflector } from '@nestjs/core';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { AllExceptionsFilter } from './common/filter/all-exceptions.filter';
 import { RedisModule } from './redis/redis.module';
+import { ProductsModule } from './modules/products/products.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { UPLOAD_ROOT } from './config/upload.config';
 
 @Module({
   imports: [
@@ -52,6 +55,11 @@ import { RedisModule } from './redis/redis.module';
     AuthModule,
     CategoriesModule,
     RedisModule,
+    ProductsModule,
+    ServeStaticModule.forRoot({
+      rootPath: UPLOAD_ROOT,
+      serveRoot: '/uploads',
+    }),
   ],
   controllers: [AppController],
   providers: [

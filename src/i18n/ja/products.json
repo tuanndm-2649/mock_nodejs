@@ -1,0 +1,10 @@
+{
+  "error": {
+    "notFound": "商品が見つかりません",
+    "categoryNotFound": "カテゴリーが見つかりません",
+    "failedToCreate": "商品の作成に失敗しました",
+    "imageNotFound": "商品画像が見つかりません",
+    "imageRequired": "画像ファイルが必要です",
+    "imageAlreadyAttached": "この画像は既に他の商品に紐付けられています"
+  }
+}

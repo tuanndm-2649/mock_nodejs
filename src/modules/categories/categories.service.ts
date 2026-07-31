@@ -71,9 +71,7 @@ export class CategoriesService {
       });
 
       if (nameExists && dto.name !== category.name) {
-        throw new ConflictException(
-          this.i18n.t('categories.error.nameExists'),
-        );
+        throw new ConflictException(this.i18n.t('categories.error.nameExists'));
       }
 
       category.name = dto.name;

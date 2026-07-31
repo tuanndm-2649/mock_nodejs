@@ -1,0 +1,10 @@
+{
+  "error": {
+    "notFound": "Product not found",
+    "categoryNotFound": "Category not found",
+    "failedToCreate": "Failed to create product",
+    "imageNotFound": "Product image not found",
+    "imageRequired": "Image file is required",
+    "imageAlreadyAttached": "Image is already attached to another product"
+  }
+}
