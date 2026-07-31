@@ -5,11 +5,11 @@ import {
 } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { InjectRepository } from '@nestjs/typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { Product } from './entities/product.entity';
 import { ProductImage } from './entities/product-image.entity';
 import { Category } from '../categories/entities/category.entity';
-import { Repository } from 'typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';
 import { I18nService } from 'nestjs-i18n';
 import { unlink } from 'fs/promises';
 import { basename, join } from 'path';
@@ -32,6 +32,8 @@ export class ProductsService {
     private readonly productImageRepository: Repository<ProductImage>,
     @InjectRepository(Category)
     private readonly categoryRepository: Repository<Category>,
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
     private readonly i18n: I18nService,
   ) {}
 
@@ -40,25 +42,29 @@ export class ProductsService {
 
     await this.ensureCategoryExists(categoryId);
 
-    const product = this.productRepository.create({
-      ...rest,
-      category: { id: categoryId },
+    const productId = await this.dataSource.transaction(async (manager) => {
+      const product = manager.create(Product, {
+        ...rest,
+        category: { id: categoryId },
+      });
+
+      const saved = await manager.save(product);
+
+      if (imageIds.length > 0) {
+        await this.attachImages(manager, saved.id, imageIds);
+      }
+
+      if (mainImageId !== undefined) {
+        await this.setMainImage(manager, saved.id, mainImageId);
+      }
+
+      return saved.id;
     });
-
-    const saved = await this.productRepository.save(product);
-
-    if (imageIds.length > 0) {
-      await this.attachImages(saved.id, imageIds);
-    }
-
-    if (mainImageId !== undefined) {
-      await this.setMainImage(saved.id, mainImageId);
-    }
 
     const created = await findEntityOrFail(
       this.productRepository,
       {
-        where: { id: saved.id },
+        where: { id: productId },
         relations: { category: true, images: true },
       },
       this.i18n.t('products.error.failedToCreate'),
@@ -102,30 +108,34 @@ export class ProductsService {
   }
 
   async update(id: number, dto: UpdateProductDto): Promise<ProductResponseDto> {
-    const product = await findEntityOrFail(
-      this.productRepository,
-      { where: { id } },
-      this.i18n.t('products.error.notFound'),
-    );
-
     const { categoryId, mainImageId, imageIds, ...rest } = dto;
 
-    Object.assign(product, rest);
+    await this.dataSource.transaction(async (manager) => {
+      const productRepository = manager.getRepository(Product);
 
-    if (categoryId !== undefined) {
-      await this.ensureCategoryExists(categoryId);
-      product.category = { id: categoryId } as Category;
-    }
+      const product = await findEntityOrFail(
+        productRepository,
+        { where: { id } },
+        this.i18n.t('products.error.notFound'),
+      );
 
-    await this.productRepository.save(product);
+      Object.assign(product, rest);
 
-    if (imageIds && imageIds.length > 0) {
-      await this.attachImages(id, imageIds);
-    }
+      if (categoryId !== undefined) {
+        await this.ensureCategoryExists(categoryId);
+        product.category = { id: categoryId } as Category;
+      }
 
-    if (mainImageId !== undefined) {
-      await this.setMainImage(id, mainImageId);
-    }
+      await productRepository.save(product);
+
+      if (imageIds && imageIds.length > 0) {
+        await this.attachImages(manager, id, imageIds);
+      }
+
+      if (mainImageId !== undefined) {
+        await this.setMainImage(manager, id, mainImageId);
+      }
+    });
 
     const updated = await findEntityOrFail(
       this.productRepository,
@@ -192,12 +202,15 @@ export class ProductsService {
   }
 
   private async attachImages(
+    manager: EntityManager,
     productId: number,
     imageIds: number[],
   ): Promise<void> {
+    const imageRepository = manager.getRepository(ProductImage);
+
     for (const imageId of imageIds) {
       const image = await findEntityOrFail(
-        this.productImageRepository,
+        imageRepository,
         { where: { id: imageId }, relations: { product: true } },
         this.i18n.t('products.error.imageNotFound'),
       );
@@ -209,30 +222,35 @@ export class ProductsService {
       }
 
       image.product = { id: productId } as Product;
-      await this.productImageRepository.save(image);
+      await imageRepository.save(image);
     }
   }
 
   private async setMainImage(
+    manager: EntityManager,
     productId: number,
     imageId: number,
   ): Promise<void> {
+    const imageRepository = manager.getRepository(ProductImage);
+
     const image = await findEntityOrFail(
-      this.productImageRepository,
+      imageRepository,
       { where: { id: imageId, product: { id: productId } } },
       this.i18n.t('products.error.imageNotFound'),
     );
 
-    await this.unsetMainImages(productId);
+    await this.unsetMainImages(manager, productId);
 
     image.isMain = true;
-    await this.productImageRepository.save(image);
+    await imageRepository.save(image);
   }
 
-  private async unsetMainImages(productId: number): Promise<void> {
-    await this.productImageRepository.update(
-      { product: { id: productId } },
-      { isMain: false },
-    );
+  private async unsetMainImages(
+    manager: EntityManager,
+    productId: number,
+  ): Promise<void> {
+    await manager
+      .getRepository(ProductImage)
+      .update({ product: { id: productId } }, { isMain: false });
   }
 }
