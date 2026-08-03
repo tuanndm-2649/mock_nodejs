@@ -24,6 +24,7 @@ import { RedisModule } from './redis/redis.module';
 import { ProductsModule } from './modules/products/products.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { UPLOAD_ROOT } from './config/upload.config';
+import { CartModule } from './modules/cart/cart.module';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { UPLOAD_ROOT } from './config/upload.config';
     CategoriesModule,
     RedisModule,
     ProductsModule,
+    CartModule,
     ServeStaticModule.forRoot({
       rootPath: UPLOAD_ROOT,
       serveRoot: '/uploads',
