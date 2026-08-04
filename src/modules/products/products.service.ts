@@ -9,7 +9,7 @@ import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { Product } from './entities/product.entity';
 import { ProductImage } from './entities/product-image.entity';
 import { Category } from '../categories/entities/category.entity';
-import { DataSource, EntityManager, Repository } from 'typeorm';
+import { DataSource, EntityManager, In, Repository } from 'typeorm';
 import { I18nService } from 'nestjs-i18n';
 import { unlink } from 'fs/promises';
 import { basename, join } from 'path';
@@ -105,6 +105,17 @@ export class ProductsService {
     );
 
     return new ProductResponseDto(product);
+  }
+
+  async findActiveByIds(ids: number[]): Promise<Product[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    return this.productRepository.find({
+      where: { id: In(ids), isActive: true },
+      relations: { category: true },
+    });
   }
 
   async update(id: number, dto: UpdateProductDto): Promise<ProductResponseDto> {

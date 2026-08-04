@@ -1,0 +1,6 @@
+{
+  "error": {
+    "outOfStock": "Requested quantity exceeds available stock",
+    "itemNotFound": "Item not found in cart"
+  }
+}
