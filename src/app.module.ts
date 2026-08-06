@@ -25,6 +25,7 @@ import { ProductsModule } from './modules/products/products.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { UPLOAD_ROOT } from './config/upload.config';
 import { CartModule } from './modules/cart/cart.module';
+import { OrdersModule } from './modules/orders/orders.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { CartModule } from './modules/cart/cart.module';
       rootPath: UPLOAD_ROOT,
       serveRoot: '/uploads',
     }),
+    OrdersModule,
   ],
   controllers: [AppController],
   providers: [
