@@ -12,6 +12,7 @@ import { findEntityOrFail } from 'src/common/utils/find-entity-or-fail.util';
 import { REDIS_CLIENT } from 'src/redis/redis.constants';
 import { DataSource, FindOptionsWhere, ILike, Repository } from 'typeorm';
 import { buildCartKey } from '../cart/cart.constants';
+import { Payment } from '../payments/entities/payment.entity';
 import { Product } from '../products/entities/product.entity';
 import { ProductsService } from '../products/products.service';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -68,10 +69,12 @@ export class OrdersService {
 
     const totalAmount = orderItemsData.reduce((sum, i) => sum + i.subtotal, 0);
 
+    const { paymentMethod, ...orderData } = dto;
+
     const orderId = await this.dataSource.manager.transaction(
       async (manager) => {
         const order = manager.create(Order, {
-          ...dto,
+          ...orderData,
           orderCode,
           totalAmount,
           user: { id: userId },
@@ -100,6 +103,14 @@ export class OrdersService {
           );
         }
 
+        const payment = manager.create(Payment, {
+          order: { id: savedOrder.id },
+          method: paymentMethod,
+          amount: totalAmount,
+        });
+
+        await manager.save(payment);
+
         return savedOrder.id;
       },
     );
@@ -108,7 +119,10 @@ export class OrdersService {
 
     const created = await findEntityOrFail(
       this.orderRepository,
-      { where: { id: orderId }, relations: { orderItems: true } },
+      {
+        where: { id: orderId },
+        relations: { orderItems: true, payment: true },
+      },
       this.i18n.t('orders.error.notFound'),
     );
 
@@ -130,7 +144,7 @@ export class OrdersService {
       skip: query.skip,
       take: query.limit,
       order: { createdAt: 'DESC' },
-      relations: { orderItems: true },
+      relations: { orderItems: true, payment: true },
     });
 
     return {
@@ -139,27 +153,19 @@ export class OrdersService {
     };
   }
 
-  async findOrderEntity(
-    id: number,
-    userId: number,
-    role: string,
-  ): Promise<Order> {
-    return findEntityOrFail(
-      this.orderRepository,
-      {
-        where: { id, ...(role !== 'admin' ? { user: { id: userId } } : {}) },
-        relations: { orderItems: true },
-      },
-      this.i18n.t('orders.error.notFound'),
-    );
-  }
-
   async findOne(
     id: number,
     userId: number,
     role: string,
   ): Promise<OrderResponseDto> {
-    const order = await this.findOrderEntity(id, userId, role);
+    const order = await findEntityOrFail(
+      this.orderRepository,
+      {
+        where: { id, ...(role !== 'admin' ? { user: { id: userId } } : {}) },
+        relations: { orderItems: true, payment: true },
+      },
+      this.i18n.t('orders.error.notFound'),
+    );
     return new OrderResponseDto(order);
   }
 
@@ -176,7 +182,7 @@ export class OrdersService {
 
     const order = await findEntityOrFail(
       this.orderRepository,
-      { where, relations: { orderItems: true } },
+      { where, relations: { orderItems: true, payment: true } },
       this.i18n.t('orders.error.notFound'),
     );
 
@@ -201,7 +207,7 @@ export class OrdersService {
   ): Promise<OrderResponseDto> {
     const order = await findEntityOrFail(
       this.orderRepository,
-      { where: { id }, relations: { orderItems: true } },
+      { where: { id }, relations: { orderItems: true, payment: true } },
       this.i18n.t('orders.error.notFound'),
     );
 

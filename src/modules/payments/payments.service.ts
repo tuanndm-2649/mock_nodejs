@@ -4,8 +4,6 @@ import { I18nService } from 'nestjs-i18n';
 import { PaginationMetaDto } from 'src/common/dto/paginated-response.dto';
 import { findEntityOrFail } from 'src/common/utils/find-entity-or-fail.util';
 import { FindOptionsWhere, Repository } from 'typeorm';
-import { OrdersService } from '../orders/orders.service';
-import { CreatePaymentDto } from './dto/create-payment.dto';
 import { FindPaymentsQueryDto } from './dto/find-payments-query.dto';
 import { PaymentResponseDto } from './dto/payment-response.dto';
 import { UpdatePaymentStatusDto } from './dto/update-payment-status.dto';
@@ -20,47 +18,8 @@ export class PaymentsService {
   constructor(
     @InjectRepository(Payment)
     private readonly paymentRepository: Repository<Payment>,
-    private readonly ordersService: OrdersService,
     private readonly i18n: I18nService,
   ) {}
-
-  async create(
-    userId: number,
-    role: string,
-    dto: CreatePaymentDto,
-  ): Promise<PaymentResponseDto> {
-    const order = await this.ordersService.findOrderEntity(
-      dto.orderId,
-      userId,
-      role,
-    );
-
-    const alreadyExists = await this.paymentRepository.exists({
-      where: { order: { id: order.id } },
-    });
-
-    if (alreadyExists) {
-      throw new BadRequestException(
-        this.i18n.t('payments.error.alreadyExists'),
-      );
-    }
-
-    const payment = this.paymentRepository.create({
-      order: { id: order.id },
-      method: dto.method,
-      amount: order.totalAmount,
-    });
-
-    const saved = await this.paymentRepository.save(payment);
-
-    const created = await findEntityOrFail(
-      this.paymentRepository,
-      { where: { id: saved.id }, relations: { order: true } },
-      this.i18n.t('payments.error.notFound'),
-    );
-
-    return new PaymentResponseDto(created);
-  }
 
   async findAll(
     userId: number,

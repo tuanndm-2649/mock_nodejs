@@ -6,9 +6,11 @@ import {
   JoinColumn,
   ManyToOne,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { Payment } from '../../payments/entities/payment.entity';
 import { OrderItems } from './oder-item.entity';
 import { OrderStatus } from '../orders.constants';
 
@@ -57,4 +59,7 @@ export class Order {
 
   @OneToMany(() => OrderItems, (item) => item.order)
   orderItems: OrderItems[];
+
+  @OneToOne(() => Payment, (payment) => payment.order)
+  payment: Payment;
 }

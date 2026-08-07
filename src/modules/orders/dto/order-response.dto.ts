@@ -1,6 +1,7 @@
 import { Order } from '../entities/order.entity';
 import { OrderStatus } from '../orders.constants';
 import { OrderItemResponse } from './order-item-response.dto';
+import { OrderPaymentResponse } from './order-payment-response.dto';
 
 export class OrderResponseDto {
   id: number;
@@ -12,6 +13,7 @@ export class OrderResponseDto {
   status: OrderStatus;
   rejectReason: string | null;
   orderItems: OrderItemResponse[];
+  payment: OrderPaymentResponse | null;
   createdAt: Date;
   updatedAt: Date;
 
@@ -27,6 +29,9 @@ export class OrderResponseDto {
     this.orderItems = order.orderItems.map(
       (item) => new OrderItemResponse(item),
     );
+    this.payment = order.payment
+      ? new OrderPaymentResponse(order.payment)
+      : null;
     this.createdAt = order.createdAt;
     this.updatedAt = order.updatedAt;
   }

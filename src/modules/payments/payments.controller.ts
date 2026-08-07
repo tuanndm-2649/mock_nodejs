@@ -5,7 +5,6 @@ import {
   Param,
   ParseIntPipe,
   Patch,
-  Post,
   Query,
   Req,
   UseGuards,
@@ -13,7 +12,6 @@ import {
 import type { AuthenticatedRequest } from 'src/common/interfaces/authenticated-request.interface';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { RolesGuard } from 'src/common/guards/roles.guard';
-import { CreatePaymentDto } from './dto/create-payment.dto';
 import { FindPaymentsQueryDto } from './dto/find-payments-query.dto';
 import { UpdatePaymentStatusDto } from './dto/update-payment-status.dto';
 import { PaymentsService } from './payments.service';
@@ -21,11 +19,6 @@ import { PaymentsService } from './payments.service';
 @Controller('payments')
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
-
-  @Post()
-  create(@Body() dto: CreatePaymentDto, @Req() req: AuthenticatedRequest) {
-    return this.paymentsService.create(req.user!.sub, req.user!.role, dto);
-  }
 
   @Get()
   findAll(
