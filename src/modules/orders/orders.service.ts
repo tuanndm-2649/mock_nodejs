@@ -139,12 +139,12 @@ export class OrdersService {
     };
   }
 
-  async findOne(
+  async findOrderEntity(
     id: number,
     userId: number,
     role: string,
-  ): Promise<OrderResponseDto> {
-    const order = await findEntityOrFail(
+  ): Promise<Order> {
+    return findEntityOrFail(
       this.orderRepository,
       {
         where: { id, ...(role !== 'admin' ? { user: { id: userId } } : {}) },
@@ -152,6 +152,14 @@ export class OrdersService {
       },
       this.i18n.t('orders.error.notFound'),
     );
+  }
+
+  async findOne(
+    id: number,
+    userId: number,
+    role: string,
+  ): Promise<OrderResponseDto> {
+    const order = await this.findOrderEntity(id, userId, role);
     return new OrderResponseDto(order);
   }
 

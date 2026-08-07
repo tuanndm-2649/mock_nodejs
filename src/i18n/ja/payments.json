@@ -1,0 +1,7 @@
+{
+  "error": {
+    "notFound": "支払いが見つかりません",
+    "alreadyExists": "この注文にはすでに支払いが存在します",
+    "invalidStatusTransition": "現在のステータスからこのステータスへの変更はできません"
+  }
+}
