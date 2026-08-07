@@ -1,0 +1,6 @@
+{
+  "error": {
+    "notFound": "支払いが見つかりません",
+    "invalidStatusTransition": "現在のステータスからこのステータスへの変更はできません"
+  }
+}
