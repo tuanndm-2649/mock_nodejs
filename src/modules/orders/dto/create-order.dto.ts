@@ -1,4 +1,5 @@
-import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { PaymentMethod } from '../../payments/payments.constants';
 
 export class CreateOrderDto {
   @IsString()
@@ -15,4 +16,7 @@ export class CreateOrderDto {
   @IsNotEmpty()
   @MaxLength(255)
   recipientAddress!: string;
+
+  @IsEnum(PaymentMethod)
+  paymentMethod!: PaymentMethod;
 }
