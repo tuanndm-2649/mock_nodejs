@@ -5,11 +5,13 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import Redis from 'ioredis';
 import { I18nService } from 'nestjs-i18n';
 import { PaginationMetaDto } from 'src/common/dto/paginated-response.dto';
 import { findEntityOrFail } from 'src/common/utils/find-entity-or-fail.util';
 import { REDIS_CLIENT } from 'src/redis/redis.constants';
+import { OrderMailData } from 'src/mail/interfaces/order-mail-data.interface';
 import { DataSource, FindOptionsWhere, ILike, Repository } from 'typeorm';
 import { buildCartKey } from '../cart/cart.constants';
 import { Payment } from '../payments/entities/payment.entity';
@@ -24,6 +26,7 @@ import { generateOrderCode } from './utils/generate-order-code.util';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { ORDER_STATUS_TRANSITIONS, OrderStatus } from './orders.constants';
+import { OrderEvent } from './orders.events';
 
 @Injectable()
 export class OrdersService {
@@ -36,6 +39,7 @@ export class OrdersService {
     private readonly i18n: I18nService,
     @Inject(REDIS_CLIENT)
     private readonly redis: Redis,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async create(userId: number, dto: CreateOrderDto): Promise<OrderResponseDto> {
@@ -121,10 +125,12 @@ export class OrdersService {
       this.orderRepository,
       {
         where: { id: orderId },
-        relations: { orderItems: true, payment: true },
+        relations: { orderItems: true, payment: true, user: true },
       },
       this.i18n.t('orders.error.notFound'),
     );
+
+    this.eventEmitter.emit(OrderEvent.PLACED, this.toMailData(created));
 
     return new OrderResponseDto(created);
   }
@@ -201,13 +207,41 @@ export class OrdersService {
     return new OrderResponseDto(saved);
   }
 
+  async cancel(
+    id: number,
+    userId: number,
+    role: string,
+  ): Promise<OrderResponseDto> {
+    const order = await findEntityOrFail(
+      this.orderRepository,
+      {
+        where: { id, ...(role !== 'admin' ? { user: { id: userId } } : {}) },
+        relations: { orderItems: true, payment: true },
+      },
+      this.i18n.t('orders.error.notFound'),
+    );
+
+    if (order.status !== OrderStatus.PENDING) {
+      throw new BadRequestException(this.i18n.t('orders.error.cannotCancel'));
+    }
+
+    order.status = OrderStatus.CANCELLED;
+
+    const saved = await this.orderRepository.save(order);
+
+    return new OrderResponseDto(saved);
+  }
+
   async updateStatus(
     id: number,
     dto: UpdateOrderStatusDto,
   ): Promise<OrderResponseDto> {
     const order = await findEntityOrFail(
       this.orderRepository,
-      { where: { id }, relations: { orderItems: true, payment: true } },
+      {
+        where: { id },
+        relations: { orderItems: true, payment: true, user: true },
+      },
       this.i18n.t('orders.error.notFound'),
     );
 
@@ -225,6 +259,22 @@ export class OrdersService {
 
     const saved = await this.orderRepository.save(order);
 
+    if (dto.status === OrderStatus.CONFIRMED) {
+      this.eventEmitter.emit(OrderEvent.CONFIRMED, this.toMailData(saved));
+    } else if (dto.status === OrderStatus.REJECTED) {
+      this.eventEmitter.emit(OrderEvent.REJECTED, this.toMailData(saved));
+    }
+
     return new OrderResponseDto(saved);
+  }
+
+  private toMailData(order: Order): OrderMailData {
+    return {
+      email: order.user.email,
+      orderCode: order.orderCode,
+      recipientName: order.recipientName,
+      totalAmount: order.totalAmount,
+      rejectReason: order.rejectReason ?? undefined,
+    };
   }
 }

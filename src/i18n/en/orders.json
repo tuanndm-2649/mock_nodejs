@@ -5,6 +5,7 @@
     "productUnavailable": "Some products in your cart are no longer available",
     "outOfStock": "One or more products exceed available stock",
     "cannotUpdate": "Only pending orders can be updated",
+    "cannotCancel": "Only pending orders can be cancelled",
     "invalidStatusTransition": "Cannot change order to this status from its current status"
   }
 }

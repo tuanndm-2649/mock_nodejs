@@ -1,0 +1,21 @@
+{
+  "orderPlaced": {
+    "subject": "Order {orderCode} placed",
+    "greeting": "Thank you for your order, {recipientName}!",
+    "body": "We've received your order {orderCode} and it's now being processed.",
+    "totalLabel": "Total amount",
+    "footer": "We'll email you again once it's confirmed."
+  },
+  "orderConfirmed": {
+    "subject": "Order {orderCode} confirmed",
+    "greeting": "Good news, {recipientName}!",
+    "body": "Your order {orderCode} has been confirmed and will be shipped soon.",
+    "totalLabel": "Total amount"
+  },
+  "orderRejected": {
+    "subject": "Order {orderCode} rejected",
+    "greeting": "Hi {recipientName},",
+    "body": "Unfortunately, your order {orderCode} has been rejected.",
+    "reasonLabel": "Reason"
+  }
+}
