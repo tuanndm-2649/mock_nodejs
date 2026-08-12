@@ -9,14 +9,24 @@ import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { Product } from './entities/product.entity';
 import { ProductImage } from './entities/product-image.entity';
 import { Category } from '../categories/entities/category.entity';
-import { DataSource, EntityManager, In, Repository } from 'typeorm';
+import {
+  Between,
+  DataSource,
+  EntityManager,
+  FindOptionsWhere,
+  ILike,
+  In,
+  LessThanOrEqual,
+  MoreThanOrEqual,
+  Repository,
+} from 'typeorm';
 import { I18nService } from 'nestjs-i18n';
 import { unlink } from 'fs/promises';
 import { basename, join } from 'path';
 import { findEntityOrFail } from 'src/common/utils/find-entity-or-fail.util';
 import { ProductResponseDto } from './dto/product-response.dto';
 import { ProductImageResponseDto } from './dto/product-image-response.dto';
-import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { FindProductsQueryDto } from './dto/find-products-query.dto';
 import { PaginationMetaDto } from 'src/common/dto/paginated-response.dto';
 import {
   PRODUCT_IMAGES_DIR,
@@ -74,21 +84,52 @@ export class ProductsService {
   }
 
   async findAll(
-    query: PaginationQueryDto,
+    query: FindProductsQueryDto,
     getAll: boolean = false,
   ): Promise<{ data: ProductResponseDto[]; meta: PaginationMetaDto }> {
+    const baseWhere: FindOptionsWhere<Product> = {
+      ...(getAll ? {} : { isActive: true }),
+      ...(query.categoryId ? { category: { id: query.categoryId } } : {}),
+      ...(query.isFeatured !== undefined
+        ? { isFeatured: query.isFeatured }
+        : {}),
+      ...this.buildPriceWhere(query),
+    };
+
+    const where = query.search
+      ? [
+          { ...baseWhere, name: ILike(`%${query.search}%`) },
+          { ...baseWhere, description: ILike(`%${query.search}%`) },
+        ]
+      : baseWhere;
+
     const [products, total] = await this.productRepository.findAndCount({
+      where,
       skip: query.skip,
       take: query.limit,
       order: { createdAt: 'DESC' },
       relations: { category: true, images: true },
-      ...(getAll ? {} : { where: { isActive: true } }),
     });
 
     return {
       data: products.map((product) => new ProductResponseDto(product)),
       meta: new PaginationMetaDto(query.page, query.limit, total),
     };
+  }
+
+  private buildPriceWhere(
+    query: FindProductsQueryDto,
+  ): FindOptionsWhere<Product> {
+    if (query.minPrice !== undefined && query.maxPrice !== undefined) {
+      return { price: Between(query.minPrice, query.maxPrice) };
+    }
+    if (query.minPrice !== undefined) {
+      return { price: MoreThanOrEqual(query.minPrice) };
+    }
+    if (query.maxPrice !== undefined) {
+      return { price: LessThanOrEqual(query.maxPrice) };
+    }
+    return {};
   }
 
   async findOneOrFail(

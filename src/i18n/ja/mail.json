@@ -1,0 +1,21 @@
+{
+  "orderPlaced": {
+    "subject": "注文 {orderCode} を受け付けました",
+    "greeting": "{recipientName} 様、ご注文ありがとうございます!",
+    "body": "ご注文 {orderCode} を受け付け、現在処理中です。",
+    "totalLabel": "合計金額",
+    "footer": "確認され次第、改めてメールでお知らせします。"
+  },
+  "orderConfirmed": {
+    "subject": "注文 {orderCode} が確認されました",
+    "greeting": "{recipientName} 様、朗報です!",
+    "body": "ご注文 {orderCode} が確認され、まもなく発送されます。",
+    "totalLabel": "合計金額"
+  },
+  "orderRejected": {
+    "subject": "注文 {orderCode} が却下されました",
+    "greeting": "{recipientName} 様",
+    "body": "誠に申し訳ございませんが、ご注文 {orderCode} は却下されました。",
+    "reasonLabel": "理由"
+  }
+}

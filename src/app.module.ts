@@ -1,6 +1,8 @@
 import { ClassSerializerInterceptor, Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { BullModule } from '@nestjs/bullmq';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import {
   AcceptLanguageResolver,
   CookieResolver,
@@ -27,6 +29,7 @@ import { UPLOAD_ROOT } from './config/upload.config';
 import { CartModule } from './modules/cart/cart.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { PaymentsModule } from './modules/payments/payments.module';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
@@ -39,6 +42,18 @@ import { PaymentsModule } from './modules/payments/payments.module';
       },
     }),
     TypeOrmModule.forRootAsync(typeOrmConfig),
+    EventEmitterModule.forRoot(),
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        connection: {
+          host: configService.getOrThrow<string>('REDIS_HOST'),
+          port: configService.getOrThrow<number>('REDIS_PORT'),
+          password: configService.get<string>('REDIS_PASSWORD'),
+          db: configService.getOrThrow<number>('REDIS_DB'),
+        },
+      }),
+    }),
     I18nModule.forRootAsync({
       useFactory: () => ({
         fallbackLanguage: 'en',
@@ -66,6 +81,7 @@ import { PaymentsModule } from './modules/payments/payments.module';
     }),
     OrdersModule,
     PaymentsModule,
+    MailModule,
   ],
   controllers: [AppController],
   providers: [

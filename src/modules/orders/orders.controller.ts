@@ -10,6 +10,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { ApiBearerAuth } from '@nestjs/swagger';
 import type { AuthenticatedRequest } from 'src/common/interfaces/authenticated-request.interface';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { RolesGuard } from 'src/common/guards/roles.guard';
@@ -19,6 +20,7 @@ import { OrdersService } from './orders.service';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 
+@ApiBearerAuth()
 @Controller('orders')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
@@ -51,6 +53,14 @@ export class OrdersController {
     @Req() req: AuthenticatedRequest,
   ) {
     return this.ordersService.update(+id, req.user!.sub, req.user!.role, dto);
+  }
+
+  @Patch(':id/cancel')
+  cancel(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.ordersService.cancel(id, req.user!.sub, req.user!.role);
   }
 
   @Patch(':id/status')

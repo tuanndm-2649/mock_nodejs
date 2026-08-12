@@ -21,7 +21,7 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { Public } from 'src/common/decorators/public.decorator';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { RolesGuard } from 'src/common/guards/roles.guard';
-import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { FindProductsQueryDto } from './dto/find-products-query.dto';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -46,7 +46,7 @@ export class ProductsController {
 
   @Public()
   @Get()
-  findAll(@Query() query: PaginationQueryDto) {
+  findAll(@Query() query: FindProductsQueryDto) {
     return this.productsService.findAll(query);
   }
 
@@ -54,7 +54,7 @@ export class ProductsController {
   @Roles(['admin'])
   @Get('all')
   findAllForAdmin(
-    @Query() query: PaginationQueryDto,
+    @Query() query: FindProductsQueryDto,
     @Query('getAll', new DefaultValuePipe(false), ParseBoolPipe)
     getAll: boolean,
   ) {

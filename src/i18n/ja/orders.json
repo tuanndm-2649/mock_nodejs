@@ -5,6 +5,7 @@
     "productUnavailable": "カート内の一部の商品が利用できません",
     "outOfStock": "在庫を超える数量が指定されています",
     "cannotUpdate": "保留中の注文のみ更新できます",
+    "cannotCancel": "保留中の注文のみキャンセルできます",
     "invalidStatusTransition": "現在のステータスからこのステータスへの変更はできません"
   }
 }
