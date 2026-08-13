@@ -37,26 +37,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: yarn
-
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
-
       - name: Install Railway CLI
         run: npm install -g @railway/cli
-
-      - name: Run database migrations
-        run: railway run --service="$RAILWAY_SERVICE_ID" yarn migration:run
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-          RAILWAY_SERVICE_ID: ${{ secrets.RAILWAY_SERVICE_ID }}
 
       - name: Deploy to railway
         run: railway up --service="$RAILWAY_SERVICE_ID" --detach
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-          RAILWAY_SERVICE_ID: ${{ secrets.RAILWAY_SERVICE_ID  }}
+          RAILWAY_SERVICE_ID: ${{ secrets.RAILWAY_SERVICE_ID }}
