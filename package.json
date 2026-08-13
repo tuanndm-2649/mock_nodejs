@@ -26,6 +26,7 @@
     "migration:generate": "yarn typeorm migration:generate",
     "migration:create": "typeorm-ts-node-commonjs migration:create",
     "migration:run": "yarn typeorm migration:run",
+    "migration:run:prod": "typeorm migration:run -d dist/database/data-source.js",
     "migration:revert": "yarn typeorm migration:revert",
     "migration:run:test": "dotenv -e .env.test.local -- yarn typeorm migration:run",
     "seed": "ts-node src/database/seeds/index.ts"
