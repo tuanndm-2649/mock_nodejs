@@ -40,6 +40,12 @@ jobs:
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
+      - name: Run database migrations
+        run: railway run --service="$RAILWAY_SERVICE_ID" yarn migration:run
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_SERVICE_ID: ${{ secrets.RAILWAY_SERVICE_ID }}
+
       - name: Deploy to railway
         run: railway up --service="$RAILWAY_SERVICE_ID" --detach
         env:
