@@ -17,5 +17,11 @@
     "greeting": "{recipientName} 様",
     "body": "誠に申し訳ございませんが、ご注文 {orderCode} は却下されました。",
     "reasonLabel": "理由"
+  },
+  "featuredProducts": {
+    "subject": "今週のおすすめ商品",
+    "greeting": "こんにちは!",
+    "body": "今週のおすすめ商品をチェックしてください:",
+    "footer": "詳しくはショップをご覧ください。"
   }
 }

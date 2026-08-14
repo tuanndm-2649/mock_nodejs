@@ -30,6 +30,8 @@ import { CartModule } from './modules/cart/cart.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { MailModule } from './mail/mail.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { NewsletterModule } from './modules/newsletter/newsletter.module';
 
 @Module({
   imports: [
@@ -41,6 +43,7 @@ import { MailModule } from './mail/mail.module';
         abortEarly: false,
       },
     }),
+    ScheduleModule.forRoot(),
     TypeOrmModule.forRootAsync(typeOrmConfig),
     EventEmitterModule.forRoot(),
     BullModule.forRootAsync({
@@ -82,6 +85,7 @@ import { MailModule } from './mail/mail.module';
     OrdersModule,
     PaymentsModule,
     MailModule,
+    NewsletterModule,
   ],
   controllers: [AppController],
   providers: [

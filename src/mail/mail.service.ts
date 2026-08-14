@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { MailerService } from '@nestjs-modules/mailer';
 import { I18nService } from 'nestjs-i18n';
 import { OrderMailData } from './interfaces/order-mail-data.interface';
+import { FeaturedProductsMailData } from './interfaces/featured-products-mail-data.interface';
 
 @Injectable()
 export class MailService {
@@ -53,6 +54,18 @@ export class MailService {
       body: this.i18n.t('mail.orderRejected.body', { args }),
       reasonLabel: this.i18n.t('mail.orderRejected.reasonLabel'),
       rejectReason: data.rejectReason,
+    });
+  }
+
+  sendFeaturedProductsNewsletter(
+    data: FeaturedProductsMailData,
+  ): Promise<void> {
+    return this.send(data.email, 'featured-products', {
+      subject: this.i18n.t('mail.featuredProducts.subject'),
+      greeting: this.i18n.t('mail.featuredProducts.greeting'),
+      body: this.i18n.t('mail.featuredProducts.body'),
+      footer: this.i18n.t('mail.featuredProducts.footer'),
+      products: data.products,
     });
   }
 

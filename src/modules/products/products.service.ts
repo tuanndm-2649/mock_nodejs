@@ -305,4 +305,11 @@ export class ProductsService {
       .getRepository(ProductImage)
       .update({ product: { id: productId } }, { isMain: false });
   }
+
+  async findFeatured(): Promise<Product[]> {
+    return this.productRepository.find({
+      where: { isActive: true, isFeatured: true },
+      order: { createdAt: 'DESC' },
+    });
+  }
 }

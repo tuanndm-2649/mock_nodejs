@@ -17,5 +17,11 @@
     "greeting": "Hi {recipientName},",
     "body": "Unfortunately, your order {orderCode} has been rejected.",
     "reasonLabel": "Reason"
+  },
+  "featuredProducts": {
+    "subject": "This week's featured products",
+    "greeting": "Hi there!",
+    "body": "Check out this week's featured products:",
+    "footer": "Visit our shop for more."
   }
 }
