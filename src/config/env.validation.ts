@@ -21,4 +21,8 @@ export const envValidationSchema = Joi.object({
   SMTP_USER: Joi.string().min(1).required(),
   SMTP_PASS: Joi.string().min(1).required(),
   MAIL_FROM: Joi.string().min(1).required(),
+  AWS_REGION: Joi.string().min(1).required(),
+  AWS_ACCESS_KEY_ID: Joi.string().min(1).required(),
+  AWS_SECRET_ACCESS_KEY: Joi.string().min(1).required(),
+  AWS_S3_BUCKET_NAME: Joi.string().min(1).required(),
 });

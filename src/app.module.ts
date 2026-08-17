@@ -24,8 +24,6 @@ import { ResponseInterceptor } from './common/interceptors/response.interceptor'
 import { AllExceptionsFilter } from './common/filter/all-exceptions.filter';
 import { RedisModule } from './redis/redis.module';
 import { ProductsModule } from './modules/products/products.module';
-import { ServeStaticModule } from '@nestjs/serve-static';
-import { UPLOAD_ROOT } from './config/upload.config';
 import { CartModule } from './modules/cart/cart.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { PaymentsModule } from './modules/payments/payments.module';
@@ -78,10 +76,6 @@ import { NewsletterModule } from './modules/newsletter/newsletter.module';
     RedisModule,
     ProductsModule,
     CartModule,
-    ServeStaticModule.forRoot({
-      rootPath: UPLOAD_ROOT,
-      serveRoot: '/uploads',
-    }),
     OrdersModule,
     PaymentsModule,
     MailModule,
