@@ -138,4 +138,8 @@ export class UsersService {
       throw new NotFoundException(this.i18n.t('users.error.notFound'));
     }
   }
+
+  async findAllActive(): Promise<User[]> {
+    return this.userRepository.find({ where: { isActive: true } });
+  }
 }
