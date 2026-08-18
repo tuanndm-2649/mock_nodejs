@@ -3,12 +3,13 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { CreateProductDto } from './dto/create-product.dto';
-import { UpdateProductDto } from './dto/update-product.dto';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { Product } from './entities/product.entity';
-import { ProductImage } from './entities/product-image.entity';
-import { Category } from '../categories/entities/category.entity';
+import { randomUUID } from 'crypto';
+import { I18nService } from 'nestjs-i18n';
+import { extname } from 'path';
+import { PaginationMetaDto } from 'src/common/dto/paginated-response.dto';
+import { findEntityOrFail } from 'src/common/utils/find-entity-or-fail.util';
+import { PRODUCT_IMAGES_PREFIX } from 'src/config/upload.config';
 import {
   Between,
   DataSource,
@@ -20,18 +21,15 @@ import {
   MoreThanOrEqual,
   Repository,
 } from 'typeorm';
-import { I18nService } from 'nestjs-i18n';
-import { unlink } from 'fs/promises';
-import { basename, join } from 'path';
-import { findEntityOrFail } from 'src/common/utils/find-entity-or-fail.util';
-import { ProductResponseDto } from './dto/product-response.dto';
-import { ProductImageResponseDto } from './dto/product-image-response.dto';
+import { Category } from '../categories/entities/category.entity';
+import { S3Service } from '../s3/s3.service';
+import { CreateProductDto } from './dto/create-product.dto';
 import { FindProductsQueryDto } from './dto/find-products-query.dto';
-import { PaginationMetaDto } from 'src/common/dto/paginated-response.dto';
-import {
-  PRODUCT_IMAGES_DIR,
-  PRODUCT_IMAGES_URL_PREFIX,
-} from 'src/config/upload.config';
+import { ProductImageResponseDto } from './dto/product-image-response.dto';
+import { ProductResponseDto } from './dto/product-response.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
+import { ProductImage } from './entities/product-image.entity';
+import { Product } from './entities/product.entity';
 
 @Injectable()
 export class ProductsService {
@@ -45,6 +43,7 @@ export class ProductsService {
     @InjectDataSource()
     private readonly dataSource: DataSource,
     private readonly i18n: I18nService,
+    private readonly s3Service: S3Service,
   ) {}
 
   async create(dto: CreateProductDto): Promise<ProductResponseDto> {
@@ -80,7 +79,9 @@ export class ProductsService {
       this.i18n.t('products.error.failedToCreate'),
     );
 
-    return new ProductResponseDto(created);
+    const resolved = await this.resolveImageUrls(created);
+
+    return new ProductResponseDto(resolved);
   }
 
   async findAll(
@@ -111,8 +112,12 @@ export class ProductsService {
       relations: { category: true, images: true },
     });
 
+    const resolved = await Promise.all(
+      products.map((product) => this.resolveImageUrls(product)),
+    );
+
     return {
-      data: products.map((product) => new ProductResponseDto(product)),
+      data: resolved.map((product) => new ProductResponseDto(product)),
       meta: new PaginationMetaDto(query.page, query.limit, total),
     };
   }
@@ -145,7 +150,9 @@ export class ProductsService {
       this.i18n.t('products.error.notFound'),
     );
 
-    return new ProductResponseDto(product);
+    const resolved = await this.resolveImageUrls(product);
+
+    return new ProductResponseDto(resolved);
   }
 
   async findActiveByIds(ids: number[]): Promise<Product[]> {
@@ -195,7 +202,9 @@ export class ProductsService {
       this.i18n.t('products.error.notFound'),
     );
 
-    return new ProductResponseDto(updated);
+    const resolved = await this.resolveImageUrls(updated);
+
+    return new ProductResponseDto(resolved);
   }
 
   async remove(id: number): Promise<void> {
@@ -215,16 +224,19 @@ export class ProductsService {
       );
     }
 
+    const key = `${PRODUCT_IMAGES_PREFIX}/${randomUUID()}${extname(file.originalname)}`;
+    await this.s3Service.uploadFile(key, file.buffer, file.mimetype);
+
     const image = this.productImageRepository.create({
-      imageUrl: `${PRODUCT_IMAGES_URL_PREFIX}/${file.filename}`,
+      imageUrl: key,
       fileType: file.mimetype,
       fileSize: file.size,
       isMain: false,
     });
 
     const saved = await this.productImageRepository.save(image);
-
-    return new ProductImageResponseDto(saved);
+    const presignedUrl = await this.s3Service.getPressignedUrl(key);
+    return new ProductImageResponseDto({ ...saved, imageUrl: presignedUrl });
   }
 
   async removeImage(productId: number, imageId: number): Promise<void> {
@@ -235,10 +247,7 @@ export class ProductsService {
     );
 
     await this.productImageRepository.remove(image);
-
-    await unlink(join(PRODUCT_IMAGES_DIR, basename(image.imageUrl))).catch(
-      () => undefined,
-    );
+    await this.s3Service.deleteFile(image.imageUrl);
   }
 
   private async ensureCategoryExists(categoryId: number): Promise<void> {
@@ -311,5 +320,18 @@ export class ProductsService {
       where: { isActive: true, isFeatured: true },
       order: { createdAt: 'DESC' },
     });
+  }
+
+  async resolveImageUrls(product: Product): Promise<Product> {
+    const images = await Promise.all(
+      product.images.map(async (img) => {
+        return {
+          ...img,
+          imageUrl: await this.s3Service.getPressignedUrl(img.imageUrl),
+        };
+      }),
+    );
+
+    return { ...product, images };
   }
 }
