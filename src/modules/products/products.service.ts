@@ -43,7 +43,7 @@ export class ProductsService {
     @InjectDataSource()
     private readonly dataSource: DataSource,
     private readonly i18n: I18nService,
-    private readonly s3Sercice: S3Service,
+    private readonly s3Service: S3Service,
   ) {}
 
   async create(dto: CreateProductDto): Promise<ProductResponseDto> {
@@ -225,7 +225,7 @@ export class ProductsService {
     }
 
     const key = `${PRODUCT_IMAGES_PREFIX}/${randomUUID()}${extname(file.originalname)}`;
-    await this.s3Sercice.uploadFile(key, file.buffer, file.mimetype);
+    await this.s3Service.uploadFile(key, file.buffer, file.mimetype);
 
     const image = this.productImageRepository.create({
       imageUrl: key,
@@ -235,7 +235,7 @@ export class ProductsService {
     });
 
     const saved = await this.productImageRepository.save(image);
-    const presignedUrl = await this.s3Sercice.getPressignedUrl(key);
+    const presignedUrl = await this.s3Service.getPressignedUrl(key);
     return new ProductImageResponseDto({ ...saved, imageUrl: presignedUrl });
   }
 
@@ -247,7 +247,7 @@ export class ProductsService {
     );
 
     await this.productImageRepository.remove(image);
-    await this.s3Sercice.deleteFile(image.imageUrl);
+    await this.s3Service.deleteFile(image.imageUrl);
   }
 
   private async ensureCategoryExists(categoryId: number): Promise<void> {
@@ -327,7 +327,7 @@ export class ProductsService {
       product.images.map(async (img) => {
         return {
           ...img,
-          imageUrl: await this.s3Sercice.getPressignedUrl(img.imageUrl),
+          imageUrl: await this.s3Service.getPressignedUrl(img.imageUrl),
         };
       }),
     );
