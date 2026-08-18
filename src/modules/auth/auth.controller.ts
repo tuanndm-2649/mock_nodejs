@@ -1,21 +1,26 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
+  Query,
   Req,
+  Res,
 } from '@nestjs/common';
-import { ApiCreatedResponse } from '@nestjs/swagger';
-import { AuthService } from './auth.service';
+import { ApiBearerAuth, ApiCreatedResponse } from '@nestjs/swagger';
 import { Public } from 'src/common/decorators/public.decorator';
-import { RegisterDto } from './dto/register.dto';
-import { RegisterResponseDto } from './dto/register-response.dto';
+import type { AuthenticatedRequest } from 'src/common/interfaces/authenticated-request.interface';
+import { TokenPair } from 'src/common/interfaces/token-payload.interface';
+import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refreshToken.dto';
-import { TokenPair } from 'src/common/interfaces/token-payload.interface';
-import type { AuthenticatedRequest } from 'src/common/interfaces/authenticated-request.interface';
+import { RegisterResponseDto } from './dto/register-response.dto';
+import { RegisterDto } from './dto/register.dto';
+import type { Response } from 'express';
 
+@ApiBearerAuth()
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -44,5 +49,18 @@ export class AuthController {
   @Post('logout')
   logout(@Req() req: AuthenticatedRequest): Promise<void> {
     return this.authService.logout(req.user!);
+  }
+
+  @Public()
+  @Get('google')
+  redirectToGoogle(@Res() res: Response): void {
+    const url = this.authService.getGoogleAuthUrl();
+    res.redirect(url);
+  }
+
+  @Public()
+  @Get('google/callback')
+  async googleCallback(@Query('code') code: string): Promise<TokenPair> {
+    return this.authService.loginWithGoogle(code);
   }
 }
