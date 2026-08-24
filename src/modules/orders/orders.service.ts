@@ -4,14 +4,16 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import Redis from 'ioredis';
 import { I18nService } from 'nestjs-i18n';
+import { join } from 'node:path';
+import { Worker } from 'node:worker_threads';
 import { PaginationMetaDto } from 'src/common/dto/paginated-response.dto';
 import { findEntityOrFail } from 'src/common/utils/find-entity-or-fail.util';
-import { REDIS_CLIENT } from 'src/redis/redis.constants';
 import { OrderMailData } from 'src/mail/interfaces/order-mail-data.interface';
+import { REDIS_CLIENT } from 'src/redis/redis.constants';
 import { DataSource, FindOptionsWhere, ILike, Repository } from 'typeorm';
 import { buildCartKey } from '../cart/cart.constants';
 import { Payment } from '../payments/entities/payment.entity';
@@ -20,13 +22,13 @@ import { ProductsService } from '../products/products.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { FindOrdersQueryDto } from './dto/find-orders-query.dto';
 import { OrderResponseDto } from './dto/order-response.dto';
+import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
+import { UpdateOrderDto } from './dto/update-order.dto';
 import { OrderItems } from './entities/oder-item.entity';
 import { Order } from './entities/order.entity';
-import { generateOrderCode } from './utils/generate-order-code.util';
-import { UpdateOrderDto } from './dto/update-order.dto';
-import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { ORDER_STATUS_TRANSITIONS, OrderStatus } from './orders.constants';
 import { OrderEvent } from './orders.events';
+import { generateOrderCode } from './utils/generate-order-code.util';
 
 @Injectable()
 export class OrdersService {
@@ -276,5 +278,48 @@ export class OrdersService {
       totalAmount: order.totalAmount,
       rejectReason: order.rejectReason ?? undefined,
     };
+  }
+
+  async generateReport(): Promise<{
+    revenueByStatus: Record<string, number>;
+    countByStatus: Record<string, number>;
+    totalOrder: number;
+  }> {
+    const orders = await this.orderRepository.find({
+      select: { status: true, totalAmount: true },
+    });
+
+    return new Promise((resolve, reject) => {
+      const isTs = __filename.endsWith('.ts');
+
+      const workerPath = join(
+        __dirname,
+        'workers',
+        isTs ? 'report.worker.ts' : 'report.worker.js',
+      );
+
+      const worker = new Worker(workerPath, {
+        workerData: { orders },
+        execArgv: isTs
+          ? ['-r', 'ts-node/register', '-r', 'tsconfig-paths/register']
+          : [],
+      });
+
+      worker.on(
+        'message',
+        (result: {
+          revenueByStatus: Record<string, number>;
+          countByStatus: Record<string, number>;
+          totalOrder: number;
+        }) => {
+          resolve(result);
+          void worker.terminate();
+        },
+      );
+
+      worker.on('error', (err: Error) => {
+        reject(err);
+      });
+    });
   }
 }
