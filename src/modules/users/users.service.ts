@@ -142,4 +142,34 @@ export class UsersService {
   async findAllActive(): Promise<User[]> {
     return this.userRepository.find({ where: { isActive: true } });
   }
+
+  async findOrCreateByGoogleProfile(profile: {
+    googleId: string;
+    email: string;
+    fullName: string;
+  }): Promise<User> {
+    const existingByGoogleId = await this.userRepository.findOneBy({
+      googleId: profile.googleId,
+    });
+
+    if (existingByGoogleId) {
+      return existingByGoogleId;
+    }
+
+    const existingByEmail = await this.findByEmail(profile.email);
+
+    if (existingByEmail) {
+      existingByEmail.googleId = profile.googleId;
+      return this.userRepository.save(existingByEmail);
+    }
+
+    const user = this.userRepository.create({
+      email: profile.email,
+      fullName: profile.fullName,
+      googleId: profile.googleId,
+      passwordHash: null,
+    });
+
+    return this.userRepository.save(user);
+  }
 }

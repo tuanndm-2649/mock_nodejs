@@ -20,6 +20,9 @@ export class User {
   @Column({ type: 'varchar', length: 100, unique: true })
   email!: string;
 
+  @Column({ name: 'google_id', type: 'varchar', unique: true, nullable: true })
+  googleId!: string | null;
+
   @Column({
     type: 'enum',
     enum: ['user', 'admin'],
@@ -28,8 +31,13 @@ export class User {
   role!: string;
 
   @Exclude()
-  @Column({ name: 'password_hash', type: 'varchar', length: 255 })
-  passwordHash!: string;
+  @Column({
+    name: 'password_hash',
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+  })
+  passwordHash!: string | null;
 
   @Column({
     name: 'refresh_token_hash',

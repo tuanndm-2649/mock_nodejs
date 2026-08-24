@@ -25,4 +25,7 @@ export const envValidationSchema = Joi.object({
   AWS_ACCESS_KEY_ID: Joi.string().min(1).required(),
   AWS_SECRET_ACCESS_KEY: Joi.string().min(1).required(),
   AWS_S3_BUCKET_NAME: Joi.string().min(1).required(),
+  GOOGLE_CLIENT_ID: Joi.string().min(1).required(),
+  GOOGLE_CLIENT_SECRET: Joi.string().min(1).required(),
+  GOOGLE_CALLBACK_URL: Joi.string().min(1).required(),
 });

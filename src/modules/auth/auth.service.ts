@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomUUID, timingSafeEqual } from 'crypto';
+import { OAuth2Client } from 'google-auth-library';
 import type Redis from 'ioredis';
 import type { SignOptions } from 'jsonwebtoken';
 import { I18nService } from 'nestjs-i18n';
@@ -20,8 +21,8 @@ import { REDIS_CLIENT } from 'src/redis/redis.constants';
 import { UsersService } from '../users/users.service';
 import { buildAccessTokenBlacklistKey } from './auth.constants';
 import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
 import { RegisterResponseDto } from './dto/register-response.dto';
+import { RegisterDto } from './dto/register.dto';
 
 @Injectable()
 export class AuthService {
@@ -35,13 +36,21 @@ export class AuthService {
     return timingSafeEqual(Buffer.from(tokenHash), Buffer.from(hash));
   }
 
+  private readonly googleClient: OAuth2Client;
+
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly i18n: I18nService,
     private readonly configService: ConfigService,
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
-  ) {}
+  ) {
+    this.googleClient = new OAuth2Client(
+      this.configService.getOrThrow<string>('GOOGLE_CLIENT_ID'),
+      this.configService.getOrThrow<string>('GOOGLE_CLIENT_SECRET'),
+      this.configService.getOrThrow<string>('GOOGLE_CALLBACK_URL'),
+    );
+  }
 
   async register(dto: RegisterDto): Promise<RegisterResponseDto> {
     const existingUser = await this.usersService.findByEmail(dto.email);
@@ -57,7 +66,7 @@ export class AuthService {
 
   async login(dto: LoginDto): Promise<TokenPair> {
     const user = await this.usersService.findByEmail(dto.email);
-    if (!user) {
+    if (!user || !user.passwordHash) {
       throw new UnauthorizedException(
         this.i18n.t('auth.error.invalidEmailPassword'),
       );
@@ -200,5 +209,47 @@ export class AuthService {
         );
       }
     }
+  }
+
+  getGoogleAuthUrl(): string {
+    return this.googleClient.generateAuthUrl({
+      access_type: 'offline',
+      scope: ['profile', 'email'],
+      prompt: 'select_account',
+    });
+  }
+
+  async loginWithGoogle(code: string): Promise<TokenPair> {
+    const { tokens } = await this.googleClient.getToken(code);
+
+    const ticket = await this.googleClient.verifyIdToken({
+      idToken: tokens.id_token!,
+      audience: this.configService.getOrThrow<string>('GOOGLE_CLIENT_ID'),
+    });
+
+    const payload = ticket.getPayload();
+
+    if (!payload?.email || !payload.sub) {
+      throw new UnauthorizedException(
+        this.i18n.t('auth.error.googleAuthFailed'),
+      );
+    }
+
+    const user = await this.usersService.findOrCreateByGoogleProfile({
+      googleId: payload.sub,
+      email: payload.email,
+      fullName: payload.name ?? payload.email,
+    });
+
+    const authTokens = await this.generateTokens({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    });
+
+    const refreshTokenHash = this.hashToken(authTokens.refreshToken);
+    await this.usersService.updateRefreshTokenHash(user.id, refreshTokenHash);
+
+    return authTokens;
   }
 }
