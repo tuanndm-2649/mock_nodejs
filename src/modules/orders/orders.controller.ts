@@ -11,14 +11,14 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
-import type { AuthenticatedRequest } from 'src/common/interfaces/authenticated-request.interface';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { RolesGuard } from 'src/common/guards/roles.guard';
+import type { AuthenticatedRequest } from 'src/common/interfaces/authenticated-request.interface';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { FindOrdersQueryDto } from './dto/find-orders-query.dto';
-import { OrdersService } from './orders.service';
-import { UpdateOrderDto } from './dto/update-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
+import { UpdateOrderDto } from './dto/update-order.dto';
+import { OrdersService } from './orders.service';
 
 @ApiBearerAuth()
 @Controller('orders')
@@ -36,6 +36,13 @@ export class OrdersController {
     @Query() query: FindOrdersQueryDto,
   ) {
     return this.ordersService.findAll(req.user!.sub, req.user!.role, query);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(['admin'])
+  @Get('report')
+  generateReport() {
+    return this.ordersService.generateReport();
   }
 
   @Get(':id')
