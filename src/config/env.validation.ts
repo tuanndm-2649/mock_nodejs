@@ -28,4 +28,5 @@ export const envValidationSchema = Joi.object({
   GOOGLE_CLIENT_ID: Joi.string().min(1).required(),
   GOOGLE_CLIENT_SECRET: Joi.string().min(1).required(),
   GOOGLE_CALLBACK_URL: Joi.string().min(1).required(),
+  KAFKA_BROKER: Joi.string().min(1).required(),
 });
