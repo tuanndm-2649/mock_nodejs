@@ -6,7 +6,8 @@
     "deleteOutDir": true,
     "assets": [
       { "include": "i18n/**/*", "watchAssets": true },
-      { "include": "mail/templates/**/*", "watchAssets": true }
+      { "include": "mail/templates/**/*", "watchAssets": true },
+      { "include": "products-grpc/products.proto", "watchAssets": true }
     ],
     "plugins": ["@nestjs/swagger"]
   }

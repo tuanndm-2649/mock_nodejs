@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package products;
+
+service ProductsService {
+  rpc FindActiveByIds (FindActiveByIdsRequest) returns (FindActiveByIdsResponse);
+}
+
+message FindActiveByIdsRequest {
+  repeated int32 ids = 1;
+}
+
+message ProductItem {
+  int32 id = 1;
+  string name = 2;
+  double price = 3;
+  int32 stock = 4;
+}
+
+message FindActiveByIdsResponse {
+  repeated ProductItem products = 1;
+}

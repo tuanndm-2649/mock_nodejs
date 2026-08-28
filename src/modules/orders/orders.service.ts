@@ -3,13 +3,16 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  OnModuleInit,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import type { ClientGrpc } from '@nestjs/microservices';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import Redis from 'ioredis';
 import { I18nService } from 'nestjs-i18n';
 import { join } from 'node:path';
 import { Worker } from 'node:worker_threads';
+import { firstValueFrom, Observable } from 'rxjs';
 import { PaginationMetaDto } from 'src/common/dto/paginated-response.dto';
 import { findEntityOrFail } from 'src/common/utils/find-entity-or-fail.util';
 import { KafkaService } from 'src/kafka/kafka.service';
@@ -19,7 +22,6 @@ import { DataSource, FindOptionsWhere, ILike, Repository } from 'typeorm';
 import { buildCartKey } from '../cart/cart.constants';
 import { Payment } from '../payments/entities/payment.entity';
 import { Product } from '../products/entities/product.entity';
-import { ProductsService } from '../products/products.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { FindOrdersQueryDto } from './dto/find-orders-query.dto';
 import { OrderResponseDto } from './dto/order-response.dto';
@@ -31,12 +33,28 @@ import { ORDER_STATUS_TRANSITIONS, OrderStatus } from './orders.constants';
 import { OrderEvent } from './orders.events';
 import { generateOrderCode } from './utils/generate-order-code.util';
 
+interface ProductGrpcItem {
+  id: number;
+  name: string;
+  price: number;
+  stock: number;
+}
+
+interface ProductsGrpcService {
+  findActiveByIds(data: {
+    ids: number[];
+  }): Observable<{ products: ProductGrpcItem[] }>;
+}
+
 @Injectable()
-export class OrdersService {
+export class OrdersService implements OnModuleInit {
+  private productsGrpcService!: ProductsGrpcService;
+
   constructor(
     @InjectRepository(Order)
     private readonly orderRepository: Repository<Order>,
-    private readonly productService: ProductsService,
+    @Inject('PRODUCTS_PACKAGE')
+    private readonly productsClient: ClientGrpc,
     @InjectDataSource()
     private readonly dataSource: DataSource,
     private readonly i18n: I18nService,
@@ -45,6 +63,11 @@ export class OrdersService {
     private readonly eventEmitter: EventEmitter2,
     private readonly kafkaService: KafkaService,
   ) {}
+
+  onModuleInit(): void {
+    this.productsGrpcService =
+      this.productsClient.getService<ProductsGrpcService>('ProductsService');
+  }
 
   async create(userId: number, dto: CreateOrderDto): Promise<OrderResponseDto> {
     const key = buildCartKey(userId);
@@ -55,7 +78,9 @@ export class OrdersService {
       throw new NotFoundException(this.i18n.t('orders.error.cartEmpty'));
     }
 
-    const products = await this.productService.findActiveByIds(productIds);
+    const { products } = await firstValueFrom(
+      this.productsGrpcService.findActiveByIds({ ids: productIds }),
+    );
     if (productIds.length !== products.length) {
       throw new NotFoundException(
         this.i18n.t('orders.error.productUnavailable'),
