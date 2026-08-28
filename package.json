@@ -57,6 +57,7 @@
     "handlebars": "^4.7.9",
     "ioredis": "^5.11.1",
     "joi": "^18.2.3",
+    "kafkajs": "^2.2.4",
     "nestjs-i18n": "^10.8.5",
     "nodemailer": "^9.0.4",
     "pg": "^8.22.0",

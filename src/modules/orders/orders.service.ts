@@ -12,6 +12,7 @@ import { join } from 'node:path';
 import { Worker } from 'node:worker_threads';
 import { PaginationMetaDto } from 'src/common/dto/paginated-response.dto';
 import { findEntityOrFail } from 'src/common/utils/find-entity-or-fail.util';
+import { KafkaService } from 'src/kafka/kafka.service';
 import { OrderMailData } from 'src/mail/interfaces/order-mail-data.interface';
 import { REDIS_CLIENT } from 'src/redis/redis.constants';
 import { DataSource, FindOptionsWhere, ILike, Repository } from 'typeorm';
@@ -42,6 +43,7 @@ export class OrdersService {
     @Inject(REDIS_CLIENT)
     private readonly redis: Redis,
     private readonly eventEmitter: EventEmitter2,
+    private readonly kafkaService: KafkaService,
   ) {}
 
   async create(userId: number, dto: CreateOrderDto): Promise<OrderResponseDto> {
@@ -133,6 +135,17 @@ export class OrdersService {
     );
 
     this.eventEmitter.emit(OrderEvent.PLACED, this.toMailData(created));
+    await this.kafkaService.publish('order.placed', {
+      orderId: created.id,
+      orderCode: created.orderCode,
+      totalAmount: created.totalAmount,
+      email: created.user.email,
+      items: orderItemsData.map((data) => ({
+        productId: data.product.id,
+        productName: data.product.name,
+        remainingStock: data.product.stock - data.quantity,
+      })),
+    });
 
     return new OrderResponseDto(created);
   }
